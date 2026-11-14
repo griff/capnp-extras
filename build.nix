@@ -1,16 +1,13 @@
 {pkgs, lib, project, sources, ...}: let
   crates = pkgs.callPackage ./Cargo.nix {
     defaultCrateOverrides = pkgs.defaultCrateOverrides // {
-      nixrs-capnp = prev: {
-        buildInputs = [pkgs.capnproto];
-      };
       capnp-rpc-tokio = prev: {
         buildInputs = [pkgs.capnproto];
       };
-      libsodium-sys = prev: {
-        nativeBuildInputs = [pkgs.pkg-config];
-        buildInputs = [pkgs.libsodium];
-      };
+      #libsodium-sys = prev: {
+      #  nativeBuildInputs = [pkgs.pkg-config];
+      #  buildInputs = [pkgs.libsodium];
+      #};
     };
   };
 
@@ -20,7 +17,7 @@
     p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
   );
   src = pkgs.lib.cleanSourceWith {
-    name = "nixrs-project";
+    name = "capnp-extras-project";
     src = pkgs.nix-gitignore.gitignoreSource [] ./.;
     filter = pkgs.lib.cleanSourceFilter;
   };
@@ -127,7 +124,7 @@ in {
     commonArgs
     // {
       inherit cargoArtifacts;
-      packages = ["nixrs" "nixrs-legacy" "nixrs-ssh-store" "nixrs-capnp" "capnp-rpc-tokio" ];
+      packages = ["capnp-convert" "capnp-rpc-tokio" ];
     }
   );
 
@@ -143,7 +140,7 @@ in {
     cargoHash = builtins.hashString "sha256" "${cargoNix}${emptySrc}";
     outputHash = builtins.hashString "sha256" "${cargoNix}${cargoHash}\n";
   in pkgs.stdenv.mkDerivation {
-    name = "nixrs-crate2nix-check";
+    name = "capnp-extras-crate2nix-check";
     src = src;
     inherit outputHash;
     outputHashAlgo = "sha256";
@@ -165,7 +162,7 @@ in {
 
   treefmt = craneLib.mkCargoDerivation (commonArgs // {
     inherit cargoArtifacts;
-    name = "nixrs-treefmt";
+    name = "capnp-extras-treefmt";
     doInstallCargoArtifacts = false;
     buildPhaseCargoCommand = ''
       treefmt . --ci 2>&1 | tee -a $out
@@ -204,24 +201,19 @@ in {
   '';
 
   shell = pkgs.mkShell {
-    name = "Nix.rs";
+    name = "capnp-extras";
     buildInputs = [ pkgs.bashInteractive ];
-    UNIX_PROXY = "${project.nix.unix-proxy}/bin/unix-proxy";
     packages = with pkgs; [
       git
       nix-diff
-      libsodium
       pkg-config
-      fuse
-      protobuf
-      libarchive
       jq
       treefmt
       rustfmt
       nixpkgs-fmt
       crate2nix
-      rustc.llvmPackages.llvm
       cargo
+      cargo-outdated
       rustc
       clippy
       rust-analyzer
@@ -230,7 +222,9 @@ in {
       just
       cloc
       jujutsu
-    ] ++ lib.optionals stdenv.isDarwin [
+      nil
+      nixd
+    ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
       iconv
     ];
   };

@@ -28,5 +28,5 @@
   in (readProject args) // {
     gather = eligible: readTree.gather (t: eligible t) self;
   } // (import ./build.nix args));
-  
+
 in tree

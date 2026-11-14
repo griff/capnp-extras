@@ -1,0 +1,17 @@
+[workspace]
+resolver = "2"
+members = ["capnp-convert", "capnp-rpc-tokio"]
+package.version = "0.1.0"
+metadata.crane.name = "capnp-extras-workspace"
+
+[workspace.dependencies]
+bytes = "^1.10.1"
+capnp = "^0.27.3"
+capnp-rpc = "^0.27.5"
+capnpc = "^0.27.0"
+futures = "^0.3.31"
+pin-project-lite = "^0.2"
+tokio = "^1.47.1"
+tokio-util = "^0.7.13"
+tower-service = "^0.3.3"
+tracing = "^0.1.37"
