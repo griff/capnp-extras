@@ -129,7 +129,7 @@ pub struct ShutdownDropGuard {
 impl Drop for ShutdownDropGuard {
     fn drop(&mut self) {
         if let Some(actual) = self.actual.take() {
-            eprintln!("Starting rpc shutdown");
+            tracing::trace!("Shutting down RPC");
             actual.shutdown_background();
         }
     }

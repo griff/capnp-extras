@@ -149,7 +149,7 @@ where
                 let p = async move {
                     let mut writer: W = fut
                         .await
-                        .map_err(|err| capnp::Error::failed(format!("{err}")))?;
+                        .map_err(|err| capnp::Error::failed(err.to_string()))?;
                     writer.write_all(data.as_ref()).await?;
                     c.send(writer)
                         .map_err(|_| capnp::Error::failed("Receiver dropped".into()))?;
@@ -179,7 +179,7 @@ where
                 let p = async move {
                     let mut writer = rec
                         .await
-                        .map_err(|err| capnp::Error::failed(format!("{err}")))?;
+                        .map_err(|err| capnp::Error::failed(err.to_string()))?;
                     writer.shutdown().await.map_err(capnp::Error::from)?;
                     Ok(())
                 };

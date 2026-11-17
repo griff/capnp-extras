@@ -1,8 +1,8 @@
 [package]
 name = "capnp-convert"
+version = "0.1.0"
 edition = "2024"
-version.workspace = true
 
 [dependencies]
-bytes.workspace = true
+bytes = { workspace = true, optional = true }
 capnp.workspace = true

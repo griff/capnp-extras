@@ -32,6 +32,7 @@ let
   commonArgs = {
     src = src;
     strictDeps = true;
+    version = "0.1.0";
     nativeBuildInputs = [
       pkgs.pkg-config
       pkgs.capnproto
@@ -255,6 +256,7 @@ in
         clippy
         rust-analyzer
         capnproto
+        capnproto-rust
         nix-output-monitor
         just
         cloc

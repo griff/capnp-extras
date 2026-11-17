@@ -142,13 +142,17 @@ rec {
           {
             name = "bytes";
             packageId = "bytes";
+            optional = true;
           }
           {
             name = "capnp";
             packageId = "capnp";
           }
         ];
-
+        features = {
+          "bytes" = [ "dep:bytes" ];
+        };
+        resolvedDefaultFeatures = [ "bytes" ];
       };
       "capnp-futures" = rec {
         crateName = "capnp-futures";
