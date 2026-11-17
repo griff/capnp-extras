@@ -1,8 +1,15 @@
-{pkgs, lib, project, sources, ...}: let
+{
+  pkgs,
+  lib,
+  project,
+  sources,
+  ...
+}:
+let
   crates = pkgs.callPackage ./Cargo.nix {
     defaultCrateOverrides = pkgs.defaultCrateOverrides // {
       capnp-rpc-tokio = prev: {
-        buildInputs = [pkgs.capnproto];
+        buildInputs = [ pkgs.capnproto ];
       };
       #libsodium-sys = prev: {
       #  nativeBuildInputs = [pkgs.pkg-config];
@@ -13,12 +20,11 @@
 
   craneLib = import sources.crane { inherit pkgs; };
   craneLibNightly = craneLib.overrideToolchain (
-    p:
-    p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
+    p: p.rust-bin.selectLatestNightlyWith (toolchain: toolchain.default)
   );
   src = pkgs.lib.cleanSourceWith {
     name = "capnp-extras-project";
-    src = pkgs.nix-gitignore.gitignoreSource [] ./.;
+    src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
     filter = pkgs.lib.cleanSourceFilter;
   };
 
@@ -36,60 +42,70 @@
     ];
   };
   cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-  cargoDocsRs = {
-    packages ? [],
-    cargoDocsRsExtraArgs ? "",
-    cargoExtraArgs ? "--locked",
-    ...
-  }@origArgs: let
-    args = builtins.removeAttrs origArgs [
-      "packages"
-      "cargoDocsRsExtraArgs"
-      "cargoExtraArgs"
-    ];
-  in
-  craneLibNightly.mkCargoDerivation (args // {
-    pnameSuffix = "-docs-rs";
+  cargoDocsRs =
+    {
+      packages ? [ ],
+      cargoDocsRsExtraArgs ? "",
+      cargoExtraArgs ? "--locked",
+      ...
+    }@origArgs:
+    let
+      args = builtins.removeAttrs origArgs [
+        "packages"
+        "cargoDocsRsExtraArgs"
+        "cargoExtraArgs"
+      ];
+    in
+    craneLibNightly.mkCargoDerivation (
+      args
+      // {
+        pnameSuffix = "-docs-rs";
 
-    doInstallCargoArtifacts = args.doInstallCargoArtifacts or false;
+        doInstallCargoArtifacts = args.doInstallCargoArtifacts or false;
 
-    docInstallRoot = args.docInstallRoot or "";
-    CARGO_BUILD_TARGET = pkgs.stdenv.hostPlatform.config;
+        docInstallRoot = args.docInstallRoot or "";
+        CARGO_BUILD_TARGET = pkgs.stdenv.hostPlatform.config;
 
-    buildPhaseCargoCommand = if packages == []
-    then "cargo docs-rs ${cargoExtraArgs} --target $CARGO_BUILD_TARGET ${cargoDocsRsExtraArgs}"
-    else ''
-      ${pkgs.lib.concatMapStringsSep "\n"
-      (p: "cargo docs-rs ${cargoExtraArgs} -p ${p} --target $CARGO_BUILD_TARGET ${cargoDocsRsExtraArgs}")
-      packages}
-    '';
+        buildPhaseCargoCommand =
+          if packages == [ ] then
+            "cargo docs-rs ${cargoExtraArgs} --target $CARGO_BUILD_TARGET ${cargoDocsRsExtraArgs}"
+          else
+            ''
+              ${pkgs.lib.concatMapStringsSep "\n" (
+                p: "cargo docs-rs ${cargoExtraArgs} -p ${p} --target $CARGO_BUILD_TARGET ${cargoDocsRsExtraArgs}"
+              ) packages}
+            '';
 
-    installPhaseCommand = ''
-      echo initial ''${CARGO_BUILD_TARGET:-} $docInstallRoot
-      if [ -z "''${docInstallRoot:-}" ]; then
-        docInstallRoot="''${CARGO_TARGET_DIR:-target}/''${CARGO_BUILD_TARGET:-}/doc"
-        echo set $docInstallRoot
+        installPhaseCommand = ''
+          echo initial ''${CARGO_BUILD_TARGET:-} $docInstallRoot
+          if [ -z "''${docInstallRoot:-}" ]; then
+            docInstallRoot="''${CARGO_TARGET_DIR:-target}/''${CARGO_BUILD_TARGET:-}/doc"
+            echo set $docInstallRoot
 
-        if ! [ -d "''${docInstallRoot}" ]; then
-          docInstallRoot="''${CARGO_TARGET_DIR:-target}/doc"
-          echo default $docInstallRoot
-        fi
-      fi
+            if ! [ -d "''${docInstallRoot}" ]; then
+              docInstallRoot="''${CARGO_TARGET_DIR:-target}/doc"
+              echo default $docInstallRoot
+            fi
+          fi
 
-      echo actual $docInstallRoot
-      mkdir -p $out/share
-      mv "''${docInstallRoot}" $out/share
-    '';
+          echo actual $docInstallRoot
+          mkdir -p $out/share
+          mv "''${docInstallRoot}" $out/share
+        '';
 
-    nativeBuildInputs = (args.nativeBuildInputs or [ ]) ++ [ project.nix.cargo-docs-rs ];
-  });
+        nativeBuildInputs = (args.nativeBuildInputs or [ ]) ++ [ project.nix.cargo-docs-rs ];
+      }
+    );
 
   onlyCargoSrc = pkgs.lib.cleanSourceWith {
     name = "project-empty-cargo";
     inherit src;
-    filter = path: type: let
-      base = builtins.baseNameOf path;
-      in type == "directory" || base == "Cargo.toml" || base == "Cargo.lock" || base == "build.rs";
+    filter =
+      path: type:
+      let
+        base = builtins.baseNameOf path;
+      in
+      type == "directory" || base == "Cargo.toml" || base == "Cargo.lock" || base == "build.rs";
   };
 
   emptySrc = pkgs.runCommand "empty-src" { src = onlyCargoSrc; } ''
@@ -109,8 +125,16 @@
       fi
     done
   '';
-in {
-  inherit crates src craneLib craneLibNightly commonArgs cargoArtifacts;
+in
+{
+  inherit
+    crates
+    src
+    craneLib
+    craneLibNightly
+    commonArgs
+    cargoArtifacts
+    ;
 
   clippy = craneLib.cargoClippy (
     commonArgs
@@ -124,7 +148,10 @@ in {
     commonArgs
     // {
       inherit cargoArtifacts;
-      packages = ["capnp-convert" "capnp-rpc-tokio" ];
+      packages = [
+        "capnp-convert"
+        "capnp-rpc-tokio"
+      ];
     }
   );
 
@@ -135,48 +162,52 @@ in {
     }
   );
 
-  crate2nix-check = let
-    cargoNix = builtins.readFile ./Cargo.nix;
-    cargoHash = builtins.hashString "sha256" "${cargoNix}${emptySrc}";
-    outputHash = builtins.hashString "sha256" "${cargoNix}${cargoHash}\n";
-  in pkgs.stdenv.mkDerivation {
-    name = "capnp-extras-crate2nix-check";
-    src = src;
-    inherit outputHash;
-    outputHashAlgo = "sha256";
-    outputHashMode = "flat";
-    SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-    buildPhase = ''
-      export CARGO_HOME=$TMP/cargo
-      export HOME=$TMP
-      mkdir -p $CARGO_HOME
-      echo "[http]" > $CARGO_HOME/config.toml
-      echo "cainfo = \"$SSL_CERT_FILE\"" >> $CARGO_HOME/config.toml
-      cat $CARGO_HOME/config.toml
-      ${pkgs.crate2nix}/bin/crate2nix generate
-      cp Cargo.nix $out
-      ${pkgs.diffutils}/bin/diff -u ${./Cargo.nix} $out || true
-      echo "${cargoHash}" >> $out
-    '';
-  };
+  crate2nix-check =
+    let
+      cargoNix = builtins.readFile ./Cargo.nix;
+      cargoHash = builtins.hashString "sha256" "${cargoNix}${emptySrc}";
+      outputHash = builtins.hashString "sha256" "${cargoNix}${cargoHash}\n";
+    in
+    pkgs.stdenv.mkDerivation {
+      name = "capnp-extras-crate2nix-check";
+      src = src;
+      inherit outputHash;
+      outputHashAlgo = "sha256";
+      outputHashMode = "flat";
+      SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+      buildPhase = ''
+        export CARGO_HOME=$TMP/cargo
+        export HOME=$TMP
+        mkdir -p $CARGO_HOME
+        echo "[http]" > $CARGO_HOME/config.toml
+        echo "cainfo = \"$SSL_CERT_FILE\"" >> $CARGO_HOME/config.toml
+        cat $CARGO_HOME/config.toml
+        ${pkgs.crate2nix}/bin/crate2nix generate
+        cp Cargo.nix $out
+        ${pkgs.diffutils}/bin/diff -u ${./Cargo.nix} $out || true
+        echo "${cargoHash}" >> $out
+      '';
+    };
 
-  treefmt = craneLib.mkCargoDerivation (commonArgs // {
-    inherit cargoArtifacts;
-    name = "capnp-extras-treefmt";
-    doInstallCargoArtifacts = false;
-    buildPhaseCargoCommand = ''
-      treefmt . --ci 2>&1 | tee -a $out
-    '';
+  treefmt = craneLib.mkCargoDerivation (
+    commonArgs
+    // {
+      inherit cargoArtifacts;
+      name = "capnp-extras-treefmt";
+      doInstallCargoArtifacts = false;
+      buildPhaseCargoCommand = ''
+        treefmt . --ci 2>&1 | tee -a $out
+      '';
 
-    installPhaseCommand = ''
-    '';
+      installPhaseCommand = "";
 
-    nativeBuildInputs = with pkgs; [
-      treefmt
-      rustfmt
-      nixpkgs-fmt
-    ];
-  });
+      nativeBuildInputs = with pkgs; [
+        treefmt
+        rustfmt
+        nixpkgs-fmt
+      ];
+    }
+  );
 
   meta.ci.targets = [
     "clippy"
@@ -186,46 +217,53 @@ in {
     "treefmt"
   ];
 
-  packages = let
-    eligible = node: (node ? outPath) && ((node.meta.flake.exported or null) != null) && !(node.meta.broken or false);
-    in project.gather (t: eligible t);
-  checks = let
-    eligibleCheck = node: (node ? outPath) && !(node.meta.broken or false);
-    in project.gather (t: eligibleCheck t);
+  packages =
+    let
+      eligible =
+        node:
+        (node ? outPath) && ((node.meta.flake.exported or null) != null) && !(node.meta.broken or false);
+    in
+    project.gather (t: eligible t);
+  checks =
+    let
+      eligibleCheck = node: (node ? outPath) && !(node.meta.broken or false);
+    in
+    project.gather (t: eligibleCheck t);
   check-names = lib.map (n: n.name) project.checks;
-  check-all = pkgs.runCommand "check-all" {} ''
+  check-all = pkgs.runCommand "check-all" { } ''
     mkdir -p $out
-    ${pkgs.lib.concatMapStringsSep "\n"
-      (p: "ln -s ${p.outPath} $out/${p.name}")
-      project.checks}
+    ${pkgs.lib.concatMapStringsSep "\n" (p: "ln -s ${p.outPath} $out/${p.name}") project.checks}
   '';
 
   shell = pkgs.mkShell {
     name = "capnp-extras";
     buildInputs = [ pkgs.bashInteractive ];
-    packages = with pkgs; [
-      git
-      nix-diff
-      pkg-config
-      jq
-      treefmt
-      rustfmt
-      nixpkgs-fmt
-      crate2nix
-      cargo
-      cargo-outdated
-      rustc
-      clippy
-      rust-analyzer
-      capnproto
-      nix-output-monitor
-      just
-      cloc
-      jujutsu
-      nil
-      nixd
-    ] ++ lib.optionals stdenv.hostPlatform.isDarwin [
-      iconv
-    ];
+    packages =
+      with pkgs;
+      [
+        git
+        nix-diff
+        pkg-config
+        jq
+        treefmt
+        rustfmt
+        nixpkgs-fmt
+        crate2nix
+        cargo
+        cargo-outdated
+        rustc
+        clippy
+        rust-analyzer
+        capnproto
+        nix-output-monitor
+        just
+        cloc
+        jujutsu
+        nil
+        nixd
+      ]
+      ++ lib.optionals stdenv.hostPlatform.isDarwin [
+        iconv
+      ];
   };
 }
