@@ -93,9 +93,9 @@ rec {
     crates = {
       "bytes" = rec {
         crateName = "bytes";
-        version = "1.12.1";
+        version = "1.12.2";
         edition = "2021";
-        sha256 = "017z19dpg4f942h051m7bpnzcgng042hhcpd7bmg7bjjqd42lrgw";
+        sha256 = "0z6xjs7a66qmhag9nlvv8m4wnk370c8cg8l4qqr8fbay06yzwvbp";
         authors = [
           "Carl Lerche <me@carllerche.com>"
           "Sean McArthur <sean@seanmonstar.com>"
